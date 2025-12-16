@@ -115,6 +115,78 @@ const colorScale = d3.scaleLinear()
   .domain([0.3, 0.8, 1, 1.2, 5])
   .range(["#1f77b4","#00bfff","#ffff00","#ff7f00","#800000"]);
 
+/* ================= LEGEND ================= */
+
+// Legend bar dimensions
+const legendBarWidth = 20;
+const legendBarHeight = 220;
+
+// Position of the legend
+const legendRightOffset = 40; 
+const legendTopOffset = topMargin + radius - legendBarHeight / 2;
+
+// Legend group
+const legendGroup = svg.append("g")
+  .attr("class", "legend")
+  .attr("transform", `translate(${width/2 + radius + legendRightOffset}, ${legendTopOffset})`);
+
+// ================= COLOR SCALE =================
+const colorScale = d3.scaleLinear()
+  .domain([0.3, 0.8, 1, 1.2, 5])
+  .range(["#1f77b4","#00bfff","#ffff00","#ff7f00","#800000"]);
+
+// Gradient for legend
+const defs = svg.append("defs");
+const linearGradient = defs.append("linearGradient")
+  .attr("id", "carrega-gradient")
+  .attr("x1","0%").attr("y1","100%")
+  .attr("x2","0%").attr("y2","0%");
+
+colorScale.domain().forEach((d, i) => {
+  linearGradient.append("stop")
+    .attr("offset", `${(i/(colorScale.domain().length-1))*100}%`)
+    .attr("stop-color", colorScale(d));
+});
+
+// Draw the gradient bar
+legendGroup.append("rect")
+  .attr("width", legendBarWidth)
+  .attr("height", legendBarHeight)
+  .style("fill","url(#carrega-gradient)")
+  .style("stroke","#333")
+  .style("stroke-width",1)
+  .attr("rx",3);
+
+// ================= TICKS =================
+// Fixed pixel positions for ticks
+const tickPositions = {
+  0: legendBarHeight,             // bottom
+  0.75: legendBarHeight * 3/4,   // between 0 and 1
+  1: legendBarHeight / 2,         // middle
+  1.25: legendBarHeight / 4,      // between 1 and 5
+  5: 0                             // top
+};
+
+// Add ticks
+legendGroup.selectAll(".tick-label")
+  .data([0, 0.75, 1, 1.25, 5])   // <-- include all ticks])
+  .enter()
+  .append("text")
+  .attr("x", legendBarWidth + 6)
+  .attr("y", d => tickPositions[d])
+  .text(d => d)
+  .style("font-size","12px")
+  .attr("alignment-baseline","middle");
+
+// Legend title
+legendGroup.append("text")  
+  .attr("x", legendBarWidth/2)
+  .attr("y",-10)
+  .attr("text-anchor","middle")
+  .style("font-size","12px")
+  .style("font-weight","bold")
+  .text("Càrrega");
+
 /* ================= CREATE CIRCLE PACK ================= */
 function createCirclePack(data, titleText) {
   titleLabel.text(titleText);
