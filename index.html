@@ -130,11 +130,6 @@ const legendGroup = svg.append("g")
   .attr("class", "legend")
   .attr("transform", `translate(${width/2 + radius + legendRightOffset}, ${legendTopOffset})`);
 
-// ================= COLOR SCALE =================
-const colorScale = d3.scaleLinear()
-  .domain([0.3, 0.8, 1, 1.2, 5])
-  .range(["#1f77b4","#00bfff","#ffff00","#ff7f00","#800000"]);
-
 // Gradient for legend
 const defs = svg.append("defs");
 const linearGradient = defs.append("linearGradient")
