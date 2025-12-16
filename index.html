@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Hospital Workload - Circle Pack</title>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  svg {
+    display: block;
+    margin: 0 auto;
+  }
+
+  #tooltip {
+    position: fixed;
+    background: #fff;
+    padding: 8px 10px;
+    border: 1px solid #999;
+    border-radius: 6px;
+    pointer-events: none;
+    opacity: 0;
+    font-size: 13px;
+    line-height: 1.2em;
+  }
+
+  #controls {
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+  }
+
+  button {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+  }
+</style>
+<script src="d3.min.js"></script>
+</head>
+<body>
+
+<div id="tooltip"></div>
+<svg id="circlepack-svg"></svg>
+<div id="controls">
+  <button id="prevBtn">Previous</button>
+  <button id="pauseBtn">Pause</button>
+  <button id="nextBtn">Next</button>
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+const topMargin = 60;
+const bottomMargin = 20;
+const width = Math.min(window.innerWidth * 0.9, 900);
+const height = Math.min(window.innerHeight * 0.9, 900);
+const radius = Math.min(width / 2, (height - topMargin - bottomMargin) / 2);
+const transitionDelay = 750;
+
+const transitions = [
+  { file: "diagSc1.json", label: "4-Jan-2022" },
+  { file: "diagSc2.json", label: "11-Jan-2022"},
+  { file: "diagSc3.json", label: "18-Jan-2022"},
+  { file: "diagSc4.json", label: "25-Jan-2022"},
+  { file: "diagSc5.json", label: "1-Feb-2022"},
+  { file: "diagSc6.json", label: "8-Feb-2022"},
+  { file: "diagSc7.json", label: "15-Feb-2022"},
+  { file: "diagSc8.json", label: "22-Feb-2022"},
+  { file: "diagSc9.json", label: "1-Mar-2022"},
+  { file: "diagSc10.json", label: "8-Mar-2022"},
+  { file: "diagSc11.json", label: "15-Mar-2022"},
+  { file: "diagSc12.json", label: "22-Mar-2022"},
+  { file: "diagSc13.json", label: "29-Mar-2022"},
+  { file: "diagSc14.json", label: "5-Apr-2022"},
+  { file: "diagSc15.json", label: "12-Apr-2022"},
+  { file: "diagSc16.json", label: "19-Apr-2022"},
+  { file: "diagSc17.json", label: "26-Apr-2022"},
+  { file: "diagSc18.json", label: "3-May-2022"}
+];
+
+let currentIndex = 0;
+let paused = false;
+let initialRootSize = null;
+let nodePositions = {};
+
+/* ================= SVG ================= */
+const svg = d3.select("#circlepack-svg")
+              .attr("width", width)
+              .attr("height", height);
+
+const g = svg.append("g")
+             .attr("transform", `translate(${width/2}, ${topMargin + radius})`);
+
+const titleLabel = svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", 30)
+    .attr("text-anchor", "middle")
+    .style("font-size", "22px")
+    .style("font-weight", "bold")
+    .text("");
+
+const tooltip = d3.select("#tooltip");
+
+const colorScale = d3.scaleLinear()
+  .domain([0.3, 0.8, 1, 1.2, 5])
+  .range(["#1f77b4","#00bfff","#ffff00","#ff7f00","#800000"]);
+
+/* ================= CREATE CIRCLE PACK ================= */
+function createCirclePack(data, titleText) {
+  titleLabel.text(titleText);
+
+  const root = d3.hierarchy(data)
+                 .sum(d => d.size || 0.01)
+                 .sort((a,b) => b.value - a.value);
+
+  if (!initialRootSize) initialRootSize = root.value;
+  const scaleFactorRoot = Math.sqrt(root.value / initialRootSize);
+
+  const pack = d3.pack().size([2*radius, 2*radius]).padding(3);
+  const nodes = pack(root).descendants();
+
+  // center nodes around (0,0)
+  nodes.forEach(d => {
+    if (!nodePositions[d.data.name]) nodePositions[d.data.name] = {x:d.x, y:d.y};
+    d.x = nodePositions[d.data.name].x - radius;
+    d.y = nodePositions[d.data.name].y - radius;
+    d.r *= scaleFactorRoot;
+    if (d.data.carrega==null) d.data.carrega=0;
+  });
+
+  const node = g.selectAll(".node")
+                .data(nodes.filter(d=>d.value>=0.001*root.value), d=>d.data.name);
+
+  const nodeEnter = node.enter().append("g")
+                        .attr("class","node")
+                        .attr("transform", d => `translate(${d.x},${d.y})`);
+
+  nodeEnter.append("circle")
+           .attr("r", 0)
+           .style("fill", d => colorScale(d.data.carrega))
+           .style("stroke", "black") 
+           .style("stroke-width", 1) 
+           .transition().duration(1200)
+           .attr("r", d => Math.max(d.r,0.1));
+
+  nodeEnter.append("text")
+           .attr("class","label")
+           .attr("dy",".3em")
+           .attr("text-anchor","middle")
+           .style("opacity",0)
+           .text(d=>d.data.name)
+           .transition().duration(1200)
+           .style("opacity", d => d.r>15?1:0);
+
+  node.transition().duration(1200)
+      .attr("transform", d => `translate(${d.x},${d.y})`);
+
+  node.select("circle").transition().duration(1200)
+      .attr("r", d=>Math.max(d.r,0.1))
+      .style("fill", d=>colorScale(d.data.carrega))
+      .style("stroke", "black")
+      .style("stroke-width", 1); 
+
+  node.select(".label").transition().duration(1200)
+      .style("opacity", d=>d.r>15?1:0)
+      .text(d=>d.data.name);
+
+  nodeEnter.on("mouseover",(event,d)=>{
+      tooltip.html(`Codi: ${d.data.name}<br>Grup: ${d.data.name2}<br>Casos: ${d.data.size}<br>Càrrega: ${d.data.carrega}<br>Comorbiditat: ${d.data.comorb}`)
+             .style("left",(event.clientX+10)+"px")
+             .style("top",(event.clientY-20)+"px")
+             .transition().duration(200).style("opacity",0.95);
+  }).on("mouseout", ()=>tooltip.transition().duration(600).style("opacity",0));
+}
+
+/* ================= LOAD STEP ================= */
+function loadStep(i) {
+  const currentTransition = transitions[i];
+  d3.json(currentTransition.file).then(data => {
+    createCirclePack(data, currentTransition.label);
+  });
+}
+
+/* ================= CONTROLS ================= */
+function next() {
+  if (currentIndex < transitions.length - 1) {
+    currentIndex++;
+    loadStep(currentIndex);
+  } else {
+    paused = true;
+    document.getElementById("pauseBtn").textContent = "Resume";
+  }
+}
+
+function prev() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    loadStep(currentIndex);
+  }
+}
+
+document.getElementById("nextBtn").onclick = next;
+document.getElementById("prevBtn").onclick = prev;
+document.getElementById("pauseBtn").onclick = () => {
+  paused = !paused;
+  document.getElementById("pauseBtn").textContent = paused ? "Resume" : "Pause";
+};
+
+/* ================= AUTO LOOP ================= */
+setInterval(() => {
+  if (!paused) next();
+}, transitionDelay);
+
+/* INITIAL LOAD */
+loadStep(currentIndex);
+</script>
+
+</body>
+</html>
+
