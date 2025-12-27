@@ -1,14 +1,7 @@
-<!--
-All JSON files (diagSc*.json) are licensed under:
-
-Creative Commons Attribution–NonCommercial–NoDerivatives 4.0 International
-© 2025 Joaquim Oristrell
-
-These files represent a medical classification framework and derived workload
-metrics and may not be used for commercial, derivative, or redistribution purposes.
--->
-
 {
+  "_license": "CC BY-NC-ND 4.0 © 2025 Joaquim Oristrell",
+  "_notice": "Medical classification framework and derived workload metrics. No commercial use or derivatives permitted.",
+
   "name": "World",
   "name2": null,
   "data": "26-04-2022",
@@ -951,3 +944,4 @@ metrics and may not be used for commercial, derivative, or redistribution purpos
   ]
 
 }
+
