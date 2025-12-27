@@ -210,9 +210,12 @@ legendGroup.append("text")
 function createCirclePack(data, titleText) {
   titleLabel.text(titleText);
 
-  const root = d3.hierarchy(data)
-                 .sum(d => d.size || 0.01)
-                 .sort((a,b) => b.value - a.value);
+  const root = d3.hierarchy(
+    data,
+    d => d.children     // explicit children accessor
+    )
+    .sum(d => d.size || 0.01)
+    .sort((a,b) => b.value - a.value);
 
   if (!initialRootSize) initialRootSize = root.value;
   const scaleFactorRoot = Math.sqrt(root.value / initialRootSize);
